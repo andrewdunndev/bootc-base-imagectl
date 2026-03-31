@@ -28,7 +28,9 @@ impl Transform for OstreeConfig {
     }
 
     fn check(&self, ctx: &super::Context) -> Result<bool> {
-        Ok(ctx.dir().exists(format!("{PREPARE_ROOT_DIR}/{PREPARE_ROOT_CONF}")))
+        Ok(ctx
+            .dir()
+            .exists(format!("{PREPARE_ROOT_DIR}/{PREPARE_ROOT_CONF}")))
     }
 
     fn apply(&self, ctx: &super::Context) -> Result<()> {

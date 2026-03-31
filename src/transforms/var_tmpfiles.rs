@@ -1,11 +1,11 @@
 //! tmpfiles.d generation for /var directory preservation across boots.
 
 use anyhow::{Context, Result};
-use cap_std_ext::cap_std;
 use cap_std::fs::Dir;
 use cap_std_ext::cap_primitives::fs::MetadataExt;
+use cap_std_ext::cap_std;
 
-use super::{clear_dir, Phase, Transform};
+use super::{Phase, Transform, clear_dir};
 
 /// Generate tmpfiles.d entries for /var directories and clean var caches.
 ///
@@ -62,7 +62,8 @@ impl Transform for VarTmpfiles {
         // Check that provision.conf doesn't still reference /root (unmigrated)
         let provision_path = format!("{TMPFILES_DIR}/provision.conf");
         if dir.exists(&provision_path) {
-            let content = dir.read_to_string(&provision_path)
+            let content = dir
+                .read_to_string(&provision_path)
                 .with_context(|| format!("reading {provision_path}"))?;
             for line in content.lines() {
                 let trimmed = line.trim();
@@ -70,9 +71,7 @@ impl Transform for VarTmpfiles {
                     continue;
                 }
                 let fields: Vec<&str> = trimmed.split_whitespace().collect();
-                if fields.len() >= 2
-                    && (fields[1] == "/root" || fields[1].starts_with("/root/"))
-                {
+                if fields.len() >= 2 && (fields[1] == "/root" || fields[1].starts_with("/root/")) {
                     return Ok(false);
                 }
             }
@@ -132,10 +131,12 @@ impl Transform for VarTmpfiles {
         }
 
         // Ensure var/run -> ../run symlink
-        let var_run_is_symlink = dir.symlink_metadata("var/run").map(|m| m.is_symlink()).unwrap_or(false);
+        let var_run_is_symlink = dir
+            .symlink_metadata("var/run")
+            .map(|m| m.is_symlink())
+            .unwrap_or(false);
         if dir.exists("var/run") && !var_run_is_symlink {
-            dir.remove_dir_all("var/run")
-                .context("removing var/run")?;
+            dir.remove_dir_all("var/run").context("removing var/run")?;
         }
         if !dir.exists("var/run") && !var_run_is_symlink {
             dir.symlink("../run", "var/run")
@@ -148,7 +149,8 @@ impl Transform for VarTmpfiles {
         // Only replace when field 1 (the path) equals /root or starts with /root/
         let provision_path = format!("{TMPFILES_DIR}/provision.conf");
         if dir.exists(&provision_path) {
-            let content = dir.read_to_string(&provision_path)
+            let content = dir
+                .read_to_string(&provision_path)
                 .with_context(|| format!("reading {provision_path}"))?;
             let mut seen_roothome = false;
             let fixed_lines: Vec<String> = content
@@ -198,12 +200,13 @@ fn scan_var_dirs(dir: &Dir, prefix: &str, entries: &mut Vec<String>) -> Result<(
         }
     };
 
-    for entry in sub.entries()
+    for entry in sub
+        .entries()
         .with_context(|| format!("reading entries in {prefix}"))?
     {
-        let entry = entry
-            .with_context(|| format!("reading entry in {prefix}"))?;
-        let ft = entry.file_type()
+        let entry = entry.with_context(|| format!("reading entry in {prefix}"))?;
+        let ft = entry
+            .file_type()
             .with_context(|| format!("file type in {prefix}"))?;
         if !ft.is_dir() || ft.is_symlink() {
             continue;
@@ -218,7 +221,8 @@ fn scan_var_dirs(dir: &Dir, prefix: &str, entries: &mut Vec<String>) -> Result<(
             continue;
         }
 
-        let meta = entry.metadata()
+        let meta = entry
+            .metadata()
             .with_context(|| format!("reading metadata for {full}"))?;
         let mode = format!("{:04o}", meta.mode() & 0o7777);
         entries.push(format!("d /{full} {mode} root root -"));

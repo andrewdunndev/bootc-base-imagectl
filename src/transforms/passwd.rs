@@ -25,16 +25,17 @@ impl Transform for PasswdGenerate {
     fn apply(&self, ctx: &super::Context) -> Result<()> {
         let dir = ctx.dir();
 
-        dir.create_dir_all("usr/lib")
-            .context("creating usr/lib")?;
+        dir.create_dir_all("usr/lib").context("creating usr/lib")?;
 
-        let passwd = dir.read_to_string("etc/passwd")
+        let passwd = dir
+            .read_to_string("etc/passwd")
             .context("reading etc/passwd")?;
         dir.write("usr/lib/passwd", &passwd)
             .context("writing usr/lib/passwd")?;
         tracing::debug!("copied etc/passwd -> usr/lib/passwd");
 
-        let group = dir.read_to_string("etc/group")
+        let group = dir
+            .read_to_string("etc/group")
             .context("reading etc/group")?;
         dir.write("usr/lib/group", &group)
             .context("writing usr/lib/group")?;

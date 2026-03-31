@@ -61,21 +61,23 @@ pub struct SystemdOptions {
     pub disable_timers: Vec<String>,
 }
 
-
 /// Load a manifest from a TOML file or treefile YAML.
 ///
 /// Files ending in `.yaml` or `.yml` are loaded as rpm-ostree
 /// treefiles and converted to an `ImageManifest`. All other files
 /// are parsed as TOML.
 pub fn load(path: &Utf8Path) -> Result<ImageManifest> {
-    if path.extension().is_some_and(|ext| ext == "yaml" || ext == "yml") {
+    if path
+        .extension()
+        .is_some_and(|ext| ext == "yaml" || ext == "yml")
+    {
         let treefile = crate::treefile::load(path.as_std_path())
             .with_context(|| format!("loading treefile {path}"))?;
         return Ok(ImageManifest::from(treefile));
     }
 
-    let contents = std::fs::read_to_string(path)
-        .with_context(|| format!("reading manifest {path}"))?;
+    let contents =
+        std::fs::read_to_string(path).with_context(|| format!("reading manifest {path}"))?;
 
     toml::from_str(&contents).with_context(|| format!("parsing manifest {path}"))
 }
@@ -91,9 +93,7 @@ impl From<crate::treefile::Treefile> for ImageManifest {
                 include: tf.packages,
                 exclude: Vec::new(),
             },
-            repos: ReposSection {
-                paths: tf.repos,
-            },
+            repos: ReposSection { paths: tf.repos },
             transforms: TransformsSection {
                 skip: Vec::new(),
                 dracut: DracutOptions::default(),

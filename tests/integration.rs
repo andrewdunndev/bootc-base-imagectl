@@ -31,7 +31,11 @@ fn create_mock_rootfs(dir: &Path) {
     fs::create_dir_all(dir.join("etc/dnf")).unwrap();
     fs::write(dir.join("etc/passwd"), "root:x:0:0:root:/root:/bin/bash\n").unwrap();
     fs::write(dir.join("etc/group"), "root:x:0:\n").unwrap();
-    fs::write(dir.join("etc/machine-id"), "abcdef1234567890abcdef1234567890\n").unwrap();
+    fs::write(
+        dir.join("etc/machine-id"),
+        "abcdef1234567890abcdef1234567890\n",
+    )
+    .unwrap();
     fs::write(dir.join("etc/dnf/dnf.conf"), "[main]\n").unwrap();
 
     // /usr structure
@@ -63,7 +67,11 @@ fn create_mock_rootfs(dir: &Path) {
     .unwrap();
 
     // home.conf (should be removed by var_tmpfiles)
-    fs::write(dir.join("usr/lib/tmpfiles.d/home.conf"), "d /home 0755 root root -\n").unwrap();
+    fs::write(
+        dir.join("usr/lib/tmpfiles.d/home.conf"),
+        "d /home 0755 root root -\n",
+    )
+    .unwrap();
 
     // /boot with fake initramfs
     fs::create_dir_all(dir.join("boot")).unwrap();
@@ -81,11 +89,8 @@ fn test_finalize_creates_symlinks() -> Result<()> {
     create_mock_rootfs(dir.path());
 
     let manifest = bootc_base_imagectl::manifest::ImageManifest::default();
-    let mut ctx = bootc_base_imagectl::transforms::Context::new(
-        dir.path().to_path_buf(),
-        manifest,
-        false,
-    )?;
+    let mut ctx =
+        bootc_base_imagectl::transforms::Context::new(dir.path().to_path_buf(), manifest, false)?;
     bootc_base_imagectl::transforms::run_all(&mut ctx)?;
 
     // Check symlinks
@@ -110,11 +115,8 @@ fn test_finalize_creates_tmpfiles() -> Result<()> {
     create_mock_rootfs(dir.path());
 
     let manifest = bootc_base_imagectl::manifest::ImageManifest::default();
-    let mut ctx = bootc_base_imagectl::transforms::Context::new(
-        dir.path().to_path_buf(),
-        manifest,
-        false,
-    )?;
+    let mut ctx =
+        bootc_base_imagectl::transforms::Context::new(dir.path().to_path_buf(), manifest, false)?;
     bootc_base_imagectl::transforms::run_all(&mut ctx)?;
 
     let conf = dir.path().join("usr/lib/tmpfiles.d/bootc-base-var.conf");
@@ -135,16 +137,17 @@ fn test_finalize_relocates_rpmdb() -> Result<()> {
     create_mock_rootfs(dir.path());
 
     let manifest = bootc_base_imagectl::manifest::ImageManifest::default();
-    let mut ctx = bootc_base_imagectl::transforms::Context::new(
-        dir.path().to_path_buf(),
-        manifest,
-        false,
-    )?;
+    let mut ctx =
+        bootc_base_imagectl::transforms::Context::new(dir.path().to_path_buf(), manifest, false)?;
     bootc_base_imagectl::transforms::run_all(&mut ctx)?;
 
     assert!(dir.path().join("usr/share/rpm/rpmdb.sqlite").exists());
     assert!(dir.path().join("var/lib/rpm").is_symlink());
-    assert!(dir.path().join("usr/lib/rpm/macros.d/macros.rpm-ostree").exists());
+    assert!(
+        dir.path()
+            .join("usr/lib/rpm/macros.d/macros.rpm-ostree")
+            .exists()
+    );
     Ok(())
 }
 
@@ -154,11 +157,8 @@ fn test_finalize_ostree_config() -> Result<()> {
     create_mock_rootfs(dir.path());
 
     let manifest = bootc_base_imagectl::manifest::ImageManifest::default();
-    let mut ctx = bootc_base_imagectl::transforms::Context::new(
-        dir.path().to_path_buf(),
-        manifest,
-        false,
-    )?;
+    let mut ctx =
+        bootc_base_imagectl::transforms::Context::new(dir.path().to_path_buf(), manifest, false)?;
     bootc_base_imagectl::transforms::run_all(&mut ctx)?;
 
     let prepare = dir.path().join("usr/lib/ostree/prepare-root.conf");
@@ -176,15 +176,15 @@ fn test_finalize_empties_machine_id() -> Result<()> {
     create_mock_rootfs(dir.path());
 
     let manifest = bootc_base_imagectl::manifest::ImageManifest::default();
-    let mut ctx = bootc_base_imagectl::transforms::Context::new(
-        dir.path().to_path_buf(),
-        manifest,
-        false,
-    )?;
+    let mut ctx =
+        bootc_base_imagectl::transforms::Context::new(dir.path().to_path_buf(), manifest, false)?;
     bootc_base_imagectl::transforms::run_all(&mut ctx)?;
 
     let machine_id = fs::read_to_string(dir.path().join("etc/machine-id"))?;
-    assert!(machine_id.is_empty(), "machine-id should be empty, got: {machine_id:?}");
+    assert!(
+        machine_id.is_empty(),
+        "machine-id should be empty, got: {machine_id:?}"
+    );
     Ok(())
 }
 
@@ -194,18 +194,22 @@ fn test_finalize_relocates_boot() -> Result<()> {
     create_mock_rootfs(dir.path());
 
     let manifest = bootc_base_imagectl::manifest::ImageManifest::default();
-    let mut ctx = bootc_base_imagectl::transforms::Context::new(
-        dir.path().to_path_buf(),
-        manifest,
-        false,
-    )?;
+    let mut ctx =
+        bootc_base_imagectl::transforms::Context::new(dir.path().to_path_buf(), manifest, false)?;
     bootc_base_imagectl::transforms::run_all(&mut ctx)?;
 
     assert!(dir.path().join("usr/lib/ostree-boot/vmlinuz-test").exists());
-    assert!(dir.path().join("usr/lib/ostree-boot/initramfs-test.img").exists());
+    assert!(
+        dir.path()
+            .join("usr/lib/ostree-boot/initramfs-test.img")
+            .exists()
+    );
     // boot should be empty
     let boot_entries: Vec<_> = fs::read_dir(dir.path().join("boot"))?.collect();
-    assert!(boot_entries.is_empty(), "boot/ should be empty after relocate");
+    assert!(
+        boot_entries.is_empty(),
+        "boot/ should be empty after relocate"
+    );
     Ok(())
 }
 
@@ -215,15 +219,15 @@ fn test_finalize_fixes_provision_conf() -> Result<()> {
     create_mock_rootfs(dir.path());
 
     let manifest = bootc_base_imagectl::manifest::ImageManifest::default();
-    let mut ctx = bootc_base_imagectl::transforms::Context::new(
-        dir.path().to_path_buf(),
-        manifest,
-        false,
-    )?;
+    let mut ctx =
+        bootc_base_imagectl::transforms::Context::new(dir.path().to_path_buf(), manifest, false)?;
     bootc_base_imagectl::transforms::run_all(&mut ctx)?;
 
     let content = fs::read_to_string(dir.path().join("usr/lib/tmpfiles.d/provision.conf"))?;
-    assert!(!content.contains(" /root "), "provision.conf should not contain /root");
+    assert!(
+        !content.contains(" /root "),
+        "provision.conf should not contain /root"
+    );
     assert!(content.contains("/var/roothome"));
     Ok(())
 }
@@ -244,11 +248,8 @@ fn test_finalize_idempotent() -> Result<()> {
     bootc_base_imagectl::transforms::run_all(&mut ctx)?;
 
     // Second run should succeed without errors
-    let mut ctx2 = bootc_base_imagectl::transforms::Context::new(
-        dir.path().to_path_buf(),
-        manifest,
-        false,
-    )?;
+    let mut ctx2 =
+        bootc_base_imagectl::transforms::Context::new(dir.path().to_path_buf(), manifest, false)?;
     bootc_base_imagectl::transforms::run_all(&mut ctx2)?;
     Ok(())
 }
@@ -282,11 +283,8 @@ fn test_manifest_skip() -> Result<()> {
     let mut manifest = bootc_base_imagectl::manifest::ImageManifest::default();
     manifest.transforms.skip = vec!["toplevel_symlinks".to_string()];
 
-    let mut ctx = bootc_base_imagectl::transforms::Context::new(
-        dir.path().to_path_buf(),
-        manifest,
-        false,
-    )?;
+    let mut ctx =
+        bootc_base_imagectl::transforms::Context::new(dir.path().to_path_buf(), manifest, false)?;
     bootc_base_imagectl::transforms::run_all(&mut ctx)?;
 
     // Symlinks should NOT have been created (transform was skipped)

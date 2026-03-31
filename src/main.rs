@@ -99,7 +99,11 @@ fn cmd_finalize(args: FinalizeArgs) -> Result<()> {
         None => manifest::ImageManifest::default(),
     };
 
-    anyhow::ensure!(args.rootfs.is_dir(), "rootfs path does not exist: {}", args.rootfs.display());
+    anyhow::ensure!(
+        args.rootfs.is_dir(),
+        "rootfs path does not exist: {}",
+        args.rootfs.display()
+    );
 
     let mut ctx = transforms::Context::new(args.rootfs, manifest, args.check)?;
     transforms::run_all(&mut ctx)?;
@@ -114,7 +118,11 @@ fn cmd_finalize(args: FinalizeArgs) -> Result<()> {
 
 #[context("Linting rootfs")]
 fn cmd_lint(args: LintArgs) -> Result<()> {
-    anyhow::ensure!(args.rootfs.is_dir(), "rootfs path does not exist: {}", args.rootfs.display());
+    anyhow::ensure!(
+        args.rootfs.is_dir(),
+        "rootfs path does not exist: {}",
+        args.rootfs.display()
+    );
 
     let manifest = manifest::ImageManifest::default();
     let mut ctx = transforms::Context::new(args.rootfs, manifest, true)?;
@@ -130,8 +138,12 @@ fn cmd_lint(args: LintArgs) -> Result<()> {
 
 #[context("Building rootfs")]
 fn cmd_build_rootfs(args: BuildRootfsArgs) -> Result<()> {
-    let manifest_path = Utf8Path::from_path(&args.manifest)
-        .with_context(|| format!("manifest path is not valid UTF-8: {}", args.manifest.display()))?;
+    let manifest_path = Utf8Path::from_path(&args.manifest).with_context(|| {
+        format!(
+            "manifest path is not valid UTF-8: {}",
+            args.manifest.display()
+        )
+    })?;
     let mut manifest = manifest::load(manifest_path)?;
 
     // Override releasever from CLI
@@ -163,7 +175,9 @@ fn cmd_build_rootfs(args: BuildRootfsArgs) -> Result<()> {
     );
 
     // Determine the target path (create first, then canonicalize)
-    let target_abs = args.target.canonicalize()
+    let target_abs = args
+        .target
+        .canonicalize()
         .with_context(|| format!("canonicalizing {}", args.target.display()))?;
 
     let mut cmd = std::process::Command::new("dnf");
@@ -187,11 +201,7 @@ fn cmd_build_rootfs(args: BuildRootfsArgs) -> Result<()> {
     // Run finalize unless --no-finalize
     if !args.no_finalize {
         tracing::info!("Running finalize transforms");
-        let mut ctx = transforms::Context::new(
-            target_abs.clone(),
-            manifest,
-            false,
-        )?;
+        let mut ctx = transforms::Context::new(target_abs.clone(), manifest, false)?;
         transforms::run_all(&mut ctx)?;
         tracing::info!("Finalize complete");
     }

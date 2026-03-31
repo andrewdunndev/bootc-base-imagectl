@@ -4,8 +4,8 @@
 use std::path::PathBuf;
 
 use anyhow::{Context as _, Result};
-use cap_std_ext::cap_std;
 use cap_std::fs::Dir;
+use cap_std_ext::cap_std;
 use fn_error_context::context;
 
 use crate::manifest::ImageManifest;
@@ -102,7 +102,9 @@ impl Context {
             .filter(|(_, r)| {
                 matches!(
                     r,
-                    TransformResult::Applied | TransformResult::AlreadyCorrect | TransformResult::Skipped(..)
+                    TransformResult::Applied
+                        | TransformResult::AlreadyCorrect
+                        | TransformResult::Skipped(..)
                 )
             })
             .count();
@@ -132,15 +134,17 @@ pub trait Transform {
 /// Remove all contents of a directory without removing the directory itself.
 #[context("Clearing directory {:?}", relative)]
 pub(crate) fn clear_dir(dir: &Dir, relative: &str) -> Result<()> {
-    let sub = dir.open_dir(relative)
+    let sub = dir
+        .open_dir(relative)
         .with_context(|| format!("opening directory {relative}"))?;
-    for entry in sub.entries()
+    for entry in sub
+        .entries()
         .with_context(|| format!("reading directory {relative}"))?
     {
-        let entry = entry
-            .with_context(|| format!("reading entry in {relative}"))?;
+        let entry = entry.with_context(|| format!("reading entry in {relative}"))?;
         let name = entry.file_name();
-        let ft = entry.file_type()
+        let ft = entry
+            .file_type()
             .with_context(|| format!("reading file type of {name:?} in {relative}"))?;
         if ft.is_dir() {
             sub.remove_dir_all(&name)

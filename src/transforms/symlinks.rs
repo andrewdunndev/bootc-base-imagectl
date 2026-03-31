@@ -41,7 +41,8 @@ impl Transform for ToplevelSymlinks {
             let meta = dir.symlink_metadata(link);
             match meta {
                 Ok(m) if m.is_symlink() => {
-                    let actual = dir.read_link(link)
+                    let actual = dir
+                        .read_link(link)
                         .with_context(|| format!("reading symlink {link}"))?;
                     if actual != std::path::Path::new(target) {
                         return Ok(false);
@@ -74,7 +75,10 @@ impl Transform for ToplevelSymlinks {
 
         for (link, target) in TOPLEVEL_LINKS {
             // Remove existing directory or file
-            let is_symlink = dir.symlink_metadata(link).map(|m| m.is_symlink()).unwrap_or(false);
+            let is_symlink = dir
+                .symlink_metadata(link)
+                .map(|m| m.is_symlink())
+                .unwrap_or(false);
             let exists_follow = dir.exists(link);
 
             if exists_follow && !is_symlink {
@@ -104,7 +108,10 @@ impl Transform for ToplevelSymlinks {
         }
 
         // ostree -> sysroot/ostree
-        let ostree_is_symlink = dir.symlink_metadata(OSTREE_LINK.0).map(|m| m.is_symlink()).unwrap_or(false);
+        let ostree_is_symlink = dir
+            .symlink_metadata(OSTREE_LINK.0)
+            .map(|m| m.is_symlink())
+            .unwrap_or(false);
         let ostree_exists = dir.exists(OSTREE_LINK.0);
 
         if ostree_exists || ostree_is_symlink {

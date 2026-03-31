@@ -32,7 +32,10 @@ pub fn run_chroot_operations(rootfs: &Path) -> Result<()> {
             .with_context(|| format!("removing symlink {}", root_path.display()))?;
         std::fs::create_dir_all(&root_path)
             .with_context(|| format!("creating dir {}", root_path.display()))?;
-        tracing::debug!("temporarily converted /root symlink -> real dir for dracut (was -> {})", target.display());
+        tracing::debug!(
+            "temporarily converted /root symlink -> real dir for dracut (was -> {})",
+            target.display()
+        );
     }
 
     // Bind-mount /proc, /sys, /dev into rootfs
@@ -92,8 +95,7 @@ fn detect_kernel_version(rootfs: &Path) -> Result<String> {
         .with_context(|| format!("reading {}", modules_dir.display()))?;
 
     for entry in entries {
-        let entry = entry
-            .with_context(|| format!("reading entry in {}", modules_dir.display()))?;
+        let entry = entry.with_context(|| format!("reading entry in {}", modules_dir.display()))?;
         if entry.path().is_dir() {
             let kver = entry
                 .file_name()
@@ -105,10 +107,7 @@ fn detect_kernel_version(rootfs: &Path) -> Result<String> {
         }
     }
 
-    anyhow::bail!(
-        "no kernel version found in {}",
-        modules_dir.display()
-    )
+    anyhow::bail!("no kernel version found in {}", modules_dir.display())
 }
 
 /// Run a command inside the rootfs via `chroot`.
@@ -134,7 +133,10 @@ fn bind_mount(source: &str, target: &Path) -> Result<()> {
         .arg(target)
         .status()
         .with_context(|| format!("mount --bind {source} {}", target.display()))?;
-    anyhow::ensure!(status.success(), "mount --bind {source} failed with {status}");
+    anyhow::ensure!(
+        status.success(),
+        "mount --bind {source} failed with {status}"
+    );
     tracing::debug!("bind mounted {source} -> {}", target.display());
     Ok(())
 }
@@ -145,7 +147,11 @@ fn umount(target: &Path) -> Result<()> {
         .arg(target)
         .status()
         .with_context(|| format!("umount {}", target.display()))?;
-    anyhow::ensure!(status.success(), "umount {} failed with {status}", target.display());
+    anyhow::ensure!(
+        status.success(),
+        "umount {} failed with {status}",
+        target.display()
+    );
     tracing::debug!("unmounted {}", target.display());
     Ok(())
 }
@@ -154,16 +160,19 @@ fn umount(target: &Path) -> Result<()> {
 #[cfg(target_os = "linux")]
 fn depmod(rootfs: &Path, kver: &str) -> Result<()> {
     tracing::info!("running depmod for {kver}");
-    run_in_chroot(rootfs, "depmod", &[kver])
-        .with_context(|| format!("depmod {kver}"))
+    run_in_chroot(rootfs, "depmod", &[kver]).with_context(|| format!("depmod {kver}"))
 }
 
 /// Generate the initramfs using dracut.
 #[cfg(target_os = "linux")]
 fn generate_initramfs(rootfs: &Path, kver: &str) -> Result<()> {
     tracing::info!("generating initramfs for {kver}");
-    run_in_chroot(rootfs, "dracut", &["--no-hostonly", "--kver", kver, "--force"])
-        .with_context(|| format!("dracut --kver {kver}"))
+    run_in_chroot(
+        rootfs,
+        "dracut",
+        &["--no-hostonly", "--kver", kver, "--force"],
+    )
+    .with_context(|| format!("dracut --kver {kver}"))
 }
 
 /// Apply systemd presets (both system and user/global).
@@ -179,16 +188,14 @@ fn preset_all(rootfs: &Path) -> Result<()> {
     for subdir in ["etc/systemd/system", "etc/systemd/user"] {
         let dir = rootfs.join(subdir);
         if dir.is_dir() {
-            std::fs::remove_dir_all(&dir)
-                .with_context(|| format!("removing {}", dir.display()))?;
+            std::fs::remove_dir_all(&dir).with_context(|| format!("removing {}", dir.display()))?;
             std::fs::create_dir_all(&dir)
                 .with_context(|| format!("recreating {}", dir.display()))?;
             tracing::debug!("cleared {subdir} before preset-all");
         }
     }
 
-    run_in_chroot(rootfs, "systemctl", &["preset-all"])
-        .with_context(|| "systemctl preset-all")?;
+    run_in_chroot(rootfs, "systemctl", &["preset-all"]).with_context(|| "systemctl preset-all")?;
     run_in_chroot(rootfs, "systemctl", &["--user", "--global", "preset-all"])
         .with_context(|| "systemctl --user --global preset-all")?;
     Ok(())
@@ -214,11 +221,17 @@ struct BootupdVersion {
 #[cfg(target_os = "linux")]
 fn efi_package_names() -> (&'static str, &'static str) {
     #[cfg(target_arch = "x86_64")]
-    { ("grub2-efi-x64", "shim-x64") }
+    {
+        ("grub2-efi-x64", "shim-x64")
+    }
     #[cfg(target_arch = "aarch64")]
-    { ("grub2-efi-aa64", "shim-aa64") }
+    {
+        ("grub2-efi-aa64", "shim-aa64")
+    }
     #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
-    { ("grub2-efi-x64", "shim-x64") } // fallback to x86_64
+    {
+        ("grub2-efi-x64", "shim-x64")
+    } // fallback to x86_64
 }
 
 /// Generate bootupd update metadata.
@@ -259,14 +272,15 @@ fn bootupd_generate(rootfs: &Path) -> Result<()> {
                     rpm_evr: evr.clone(),
                 }],
             };
-            let bios_json = serde_json::to_string_pretty(&meta)
-                .context("serializing BIOS.json")?;
+            let bios_json = serde_json::to_string_pretty(&meta).context("serializing BIOS.json")?;
             std::fs::write(updates_dir.join("BIOS.json"), &bios_json)
                 .context("writing BIOS.json")?;
             tracing::debug!("wrote BIOS.json (grub2 {evr})");
         }
     } else {
-        tracing::debug!("skipping BIOS.json: grub2-install or i386-pc modules not found (EFI-only image)");
+        tracing::debug!(
+            "skipping BIOS.json: grub2-install or i386-pc modules not found (EFI-only image)"
+        );
     }
 
     // Generate EFI metadata: copy binaries + write JSON
@@ -302,10 +316,8 @@ fn bootupd_generate(rootfs: &Path) -> Result<()> {
             version: version_parts.join(","),
             versions,
         };
-        let efi_json = serde_json::to_string_pretty(&meta)
-            .context("serializing EFI.json")?;
-        std::fs::write(updates_dir.join("EFI.json"), &efi_json)
-            .context("writing EFI.json")?;
+        let efi_json = serde_json::to_string_pretty(&meta).context("serializing EFI.json")?;
+        std::fs::write(updates_dir.join("EFI.json"), &efi_json).context("writing EFI.json")?;
         tracing::debug!("wrote EFI.json");
     } else {
         tracing::debug!("no /boot/efi/EFI found, skipping EFI metadata");
@@ -366,19 +378,17 @@ fn civil_from_days(days: i64) -> (i32, u32, u32) {
 /// Recursively copy a directory tree.
 #[cfg(target_os = "linux")]
 fn copy_dir_recursive(src: &Path, dest: &Path) -> Result<()> {
-    std::fs::create_dir_all(dest)
-        .with_context(|| format!("creating {}", dest.display()))?;
-    for entry in std::fs::read_dir(src)
-        .with_context(|| format!("reading {}", src.display()))?
-    {
+    std::fs::create_dir_all(dest).with_context(|| format!("creating {}", dest.display()))?;
+    for entry in std::fs::read_dir(src).with_context(|| format!("reading {}", src.display()))? {
         let entry = entry?;
         let src_path = entry.path();
         let dest_path = dest.join(entry.file_name());
         if src_path.is_dir() {
             copy_dir_recursive(&src_path, &dest_path)?;
         } else {
-            std::fs::copy(&src_path, &dest_path)
-                .with_context(|| format!("copying {} -> {}", src_path.display(), dest_path.display()))?;
+            std::fs::copy(&src_path, &dest_path).with_context(|| {
+                format!("copying {} -> {}", src_path.display(), dest_path.display())
+            })?;
         }
     }
     Ok(())

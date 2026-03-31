@@ -31,7 +31,8 @@ impl Transform for BootRelocate {
 
         // Check that /boot is empty
         if dir.is_dir(BOOT_DIR) {
-            let count = dir.read_dir(BOOT_DIR)
+            let count = dir
+                .read_dir(BOOT_DIR)
                 .with_context(|| format!("reading {BOOT_DIR}"))?
                 .count();
             if count > 0 {
@@ -49,19 +50,18 @@ impl Transform for BootRelocate {
             .with_context(|| format!("creating {OSTREE_BOOT_DIR}"))?;
 
         if dir.is_dir(BOOT_DIR) {
-            for entry in dir.read_dir(BOOT_DIR)
+            for entry in dir
+                .read_dir(BOOT_DIR)
                 .with_context(|| format!("reading {BOOT_DIR}"))?
             {
-                let entry = entry
-                    .with_context(|| format!("reading entry in {BOOT_DIR}"))?;
+                let entry = entry.with_context(|| format!("reading entry in {BOOT_DIR}"))?;
                 let file_name = entry.file_name();
                 let name_str = file_name.to_string_lossy();
                 let from = format!("{BOOT_DIR}/{name_str}");
                 let to = format!("{OSTREE_BOOT_DIR}/{name_str}");
 
-                dir.rename(&from, dir, &to).with_context(|| {
-                    format!("moving {from} -> {to}")
-                })?;
+                dir.rename(&from, dir, &to)
+                    .with_context(|| format!("moving {from} -> {to}"))?;
                 tracing::debug!("moved boot/{name_str}");
             }
         }

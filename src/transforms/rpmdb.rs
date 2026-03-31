@@ -1,8 +1,8 @@
 //! RPM database relocation to the immutable /usr partition.
 
 use anyhow::{Context, Result};
-use cap_std_ext::cap_std;
 use cap_std::fs::Dir;
+use cap_std_ext::cap_std;
 
 use super::{Phase, Transform};
 
@@ -62,22 +62,25 @@ impl Transform for RpmdbRelocate {
         };
 
         // Move all files from source to /usr/share/rpm/
-        let is_real_dir = dir.symlink_metadata(src).map(|m| m.is_dir()).unwrap_or(false);
+        let is_real_dir = dir
+            .symlink_metadata(src)
+            .map(|m| m.is_dir())
+            .unwrap_or(false);
         if is_real_dir {
-            let src_dir = dir.open_dir(src)
+            let src_dir = dir
+                .open_dir(src)
                 .with_context(|| format!("opening {src}"))?;
-            for entry in src_dir.entries()
+            for entry in src_dir
+                .entries()
                 .with_context(|| format!("reading {src}"))?
             {
-                let entry = entry
-                    .with_context(|| format!("reading entry in {src}"))?;
+                let entry = entry.with_context(|| format!("reading entry in {src}"))?;
                 let file_name = entry.file_name();
                 let from = format!("{src}/{}", file_name.to_string_lossy());
                 let to = format!("{DEST_DIR}/{}", file_name.to_string_lossy());
 
-                dir.rename(&from, dir, &to).with_context(|| {
-                    format!("moving {from} -> {to}")
-                })?;
+                dir.rename(&from, dir, &to)
+                    .with_context(|| format!("moving {from} -> {to}"))?;
                 tracing::debug!("moved {}", file_name.to_string_lossy());
             }
 
@@ -87,12 +90,18 @@ impl Transform for RpmdbRelocate {
         }
 
         // Ensure /var/lib/rpm is a symlink to the dest
-        let var_link_is_real_dir = dir.symlink_metadata(VAR_LINK).map(|m| m.is_dir()).unwrap_or(false);
+        let var_link_is_real_dir = dir
+            .symlink_metadata(VAR_LINK)
+            .map(|m| m.is_dir())
+            .unwrap_or(false);
         if dir.exists(VAR_LINK) && var_link_is_real_dir {
             dir.remove_dir_all(VAR_LINK)
                 .with_context(|| format!("removing {VAR_LINK}"))?;
         }
-        let var_link_is_symlink = dir.symlink_metadata(VAR_LINK).map(|m| m.is_symlink()).unwrap_or(false);
+        let var_link_is_symlink = dir
+            .symlink_metadata(VAR_LINK)
+            .map(|m| m.is_symlink())
+            .unwrap_or(false);
         if !var_link_is_symlink {
             if let Some(parent) = std::path::Path::new(VAR_LINK).parent() {
                 if !parent.as_os_str().is_empty() {
@@ -119,11 +128,15 @@ impl Transform for RpmdbRelocate {
 }
 
 fn has_db_files(dir: &Dir, subdir: &str) -> bool {
-    let Ok(sub) = dir.open_dir(subdir) else { return false };
+    let Ok(sub) = dir.open_dir(subdir) else {
+        return false;
+    };
     sub.entries()
-        .map(|entries| entries.flatten().any(|e| {
-            let name = e.file_name().to_string_lossy().to_string();
-            name.ends_with(".sqlite") || name.ends_with(".db")
-        }))
+        .map(|entries| {
+            entries.flatten().any(|e| {
+                let name = e.file_name().to_string_lossy().to_string();
+                name.ends_with(".sqlite") || name.ends_with(".db")
+            })
+        })
         .unwrap_or(false)
 }

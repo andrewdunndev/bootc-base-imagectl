@@ -30,14 +30,18 @@ impl Transform for SystemdConfig {
     fn check(&self, ctx: &super::Context) -> Result<bool> {
         let dir = ctx.dir();
         let link_path = format!("{TMP_MOUNT_WANTS_DIR}/{TMP_MOUNT_LINK}");
-        let is_symlink = dir.symlink_metadata(&link_path).map(|m| m.is_symlink()).unwrap_or(false);
+        let is_symlink = dir
+            .symlink_metadata(&link_path)
+            .map(|m| m.is_symlink())
+            .unwrap_or(false);
         if !is_symlink {
             return Ok(false);
         }
 
         // Also check machine-id is empty
         if dir.exists(MACHINE_ID) {
-            let content = dir.read_to_string(MACHINE_ID)
+            let content = dir
+                .read_to_string(MACHINE_ID)
                 .with_context(|| format!("reading {MACHINE_ID}"))?;
             if !content.trim().is_empty() {
                 return Ok(false);

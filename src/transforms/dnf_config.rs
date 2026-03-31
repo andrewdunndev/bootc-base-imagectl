@@ -35,7 +35,8 @@ impl Transform for DnfConfig {
         if !dir.exists(DNF4_CONF) {
             return Ok(false);
         }
-        let contents = dir.read_to_string(DNF4_CONF)
+        let contents = dir
+            .read_to_string(DNF4_CONF)
             .with_context(|| format!("reading {DNF4_CONF}"))?;
         Ok(contents.contains("protect_running_kernel"))
     }
