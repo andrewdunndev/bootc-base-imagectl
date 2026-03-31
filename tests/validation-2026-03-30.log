@@ -1,0 +1,139 @@
+bootc-base-imagectl validation log
+Date: 2026-03-30T16:59:57Z
+Host: lab-imagectl-validate (x86_64)
+Kernel: 6.19.7-100.fc42.x86_64
+Fedora: 42
+Tool: tests/../target/release/bootc-base-imagectl
+Manifest: tests/../examples/basef-minimal.toml
+
+[16:59:57] === Preflight checks ===
+[16:59:57] All preflight checks passed
+
+[16:59:57] === Step 1: build-rootfs ===
+2026-03-30T16:59:57.215484Z  INFO bootc_base_imagectl: Installing 26 packages into /tmp/imagectl-e2e-40266/rootfs
+>>> libkmod: ERROR libkmod/libkmod-module.c:1800 kmod_module_new_from_loaded: co
+2026-03-30T17:02:36.648521Z  INFO bootc_base_imagectl: Package installation complete
+2026-03-30T17:02:36.648545Z  INFO bootc_base_imagectl: Running finalize transforms
+2026-03-30T17:02:36.649353Z  INFO bootc_base_imagectl::transforms: toplevel_symlinks: applied
+2026-03-30T17:02:36.660031Z  INFO bootc_base_imagectl::transforms: var_tmpfiles: applied
+2026-03-30T17:02:36.660242Z  INFO bootc_base_imagectl::transforms: rpmdb_relocate: applied
+2026-03-30T17:02:36.660295Z  INFO bootc_base_imagectl::transforms: passwd_generate: applied
+2026-03-30T17:02:36.660345Z  INFO bootc_base_imagectl::transforms: ostree_config: applied
+2026-03-30T17:02:36.660458Z  INFO bootc_base_imagectl::transforms: dracut_config: applied
+2026-03-30T17:02:36.660485Z  INFO bootc_base_imagectl::transforms: dnf_config: applied
+2026-03-30T17:02:36.660547Z  INFO bootc_base_imagectl::transforms: systemd_config: applied
+2026-03-30T17:02:36.660696Z  INFO bootc_base_imagectl::chroot: detected kernel version: 6.19.8-100.fc42.x86_64
+2026-03-30T17:02:36.666584Z  INFO bootc_base_imagectl::chroot: running depmod for 6.19.8-100.fc42.x86_64
+2026-03-30T17:02:40.630045Z  INFO bootc_base_imagectl::chroot: generating initramfs for 6.19.8-100.fc42.x86_64
+2026-03-30T17:03:14.702398Z  INFO bootc_base_imagectl::chroot: applying systemd presets
+2026-03-30T17:03:14.839568Z  INFO bootc_base_imagectl::chroot: generating bootupd update metadata
+2026-03-30T17:03:14.876213Z  INFO bootc_base_imagectl::transforms: chroot_ops: applied
+2026-03-30T17:03:14.876418Z  INFO bootc_base_imagectl::transforms: boot_relocate: applied
+2026-03-30T17:03:14.876781Z  INFO bootc_base_imagectl::transforms: post_cleanup: applied
+2026-03-30T17:03:14.876789Z  INFO bootc_base_imagectl: Finalize complete
+[17:03:15] Packages installed: 218
+[17:03:15] Rootfs size: 602M
+
+[17:03:15] === Step 2: install config ===
+[17:03:15] Wrote /usr/lib/bootc/install/00-e2e.toml
+
+[17:03:15] === Step 3: bootc container lint ===
+Checks passed: 13
+Checks skipped: 1
+[17:03:15] Lint passed
+
+[17:03:15] === Step 4: transform verification ===
+[17:03:15]   OK: toplevel symlinks
+[17:03:15]   OK: /root -> var/roothome
+[17:03:15]   OK: /ostree -> sysroot/ostree
+[17:03:15]   OK: /sysroot exists
+[17:03:15]   OK: rpmdb relocated
+[17:03:15]   OK: var/lib/rpm is symlink
+[17:03:15]   OK: ostree prepare-root.conf
+[17:03:15]   OK: machine-id empty
+[17:03:15]   OK: tmpfiles.d generated
+[17:03:15]   OK: home.conf removed
+[17:03:15]   OK: dracut config
+[17:03:15]   OK: altfiles dracut
+[17:03:15]   OK: /boot empty (except efi)
+[17:03:15]   OK: ostree-boot populated
+[17:03:15]   OK: bootupd EFI.json
+[17:03:15]   OK: bootupd BIOS.json
+[17:03:15]   OK: EFI binaries in bootupd
+[17:03:15]   OK: passwd in /usr/lib
+
+[17:03:15] === Step 5: container image ===
+--> 1a4a8d5019f5
+Successfully tagged localhost/imagectl-e2e:latest
+1a4a8d5019f5623d69d4e9ec041df4ffb32c09a43eff466962d24410c22a7a41
+[17:03:37] Image size: 591 MB
+
+[17:03:37] === Step 6: bootc install to-disk ===
+Installing image: docker://localhost/imagectl-e2e:latest
+Digest: sha256:40890720992ce57c581e5e8a0e8192ff8f627fe75b3aaa19fab7dab89f748f52
+Block setup: direct
+       Size: 10737418240
+     Serial: <unknown>
+      Model: <unknown>
+Checking that no-one is using this disk right now ... OK
+Disk /dev/loop0: 10 GiB, 10737418240 bytes, 20971520 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+>>> Script header accepted.
+>>> Script header accepted.
+>>> Created a new GPT disklabel (GUID: 1416992C-8198-4740-AD39-CC6DF2E3102E).
+/dev/loop0p1: Created a new partition 1 of type 'BIOS boot' and of size 1 MiB.
+/dev/loop0p2: Created a new partition 2 of type 'EFI System' and of size 512 MiB.
+/dev/loop0p3: Created a new partition 3 of type 'Linux root (x86-64)' and of size 9.5 GiB.
+/dev/loop0p4: Done.
+New situation:
+Disklabel type: gpt
+Disk identifier: 1416992C-8198-4740-AD39-CC6DF2E3102E
+Device         Start      End  Sectors  Size Type
+/dev/loop0p1    2048     4095     2048    1M BIOS boot
+/dev/loop0p2    4096  1052671  1048576  512M EFI System
+/dev/loop0p3 1052672 20969471 19916800  9.5G Linux root (x86-64)
+The partition table has been altered.
+Calling ioctl() to re-read partition table.
+Syncing disks.
+Creating root filesystem (xfs) on device /dev/loop0p3 (size=10.2 GB)
+> mkfs.xfs -m uuid=e1b3bc69-6e1f-46ce-90c1-f354f33964a6 -L root /dev/loop0p3
+Creating ESP filesystem
+> mkfs.fat /dev/loop0p2 -n EFI-SYSTEM
+Initializing ostree layout
+layers already present: 0; layers needed: 1 (619.8 MB)
+Deploying container image...done (8 seconds)
+Bootloader: grub
+Installing bootloader via bootupd
+Added 01_users.cfg
+Added 10_blscfg.cfg
+Added 14_menu_show_once.cfg
+Added 30_uefi-firmware.cfg
+Added 41_custom.cfg
+Installed: grub.cfg
+Installed: bootuuid.cfg
+Installed: "fedora/grub.cfg"
+Installed: "fedora/bootuuid.cfg"
+Trimming root
+.: 9.5 GiB (10197401600 bytes) trimmed
+Finalizing filesystem root
+Unmounting filesystems
+Installation complete!
+[17:04:06] Disk image created: 688M
+
+[17:04:06] === Step 7: QEMU boot ===
+[17:04:06] Booting with UEFI firmware (30s timeout)...
+[17:04:36] GRUB loaded ostree deployment
+[17:04:36] Kernel boot initiated
+
+[17:04:36] === Summary ===
+[17:04:36] build-rootfs:          OK (218 packages, 602M)
+[17:04:36] finalize:              OK (all transforms applied)
+[17:04:36] bootc container lint:  OK
+[17:04:36] transform verification: OK (18/18 checks)
+[17:04:36] container image:       OK (591 MB)
+[17:04:36] bootc install to-disk: OK
+[17:04:36] QEMU boot:             OK (GRUB -> kernel)
+
+[17:04:36] Validation log: /tmp/validation.log

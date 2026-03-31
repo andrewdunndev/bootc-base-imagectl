@@ -1,0 +1,48 @@
+[image]
+name = "basef-minimal"
+releasever = "42"
+
+[packages]
+include = [
+    # Core
+    "systemd",
+    "kernel-core",
+    "dracut",
+    "coreutils",
+    "bash",
+    "rpm",
+    "dnf5",
+    # bootc/ostree
+    "bootc",
+    "bootupd",
+    "ostree",
+    "composefs",
+    # Bootloader: EFI + BIOS (both needed for bootupd)
+    "grub2-efi-x64",
+    "grub2-efi-x64-modules",
+    "grub2-tools",
+    "grub2-pc",
+    "shim-x64",
+    "efibootmgr",
+    # bubblewrap (needed by bootc install for bootupd)
+    "bubblewrap",
+    # Filesystem tools (needed by bootc install to-disk)
+    "xfsprogs",
+    "e2fsprogs",
+    "dosfstools",
+    # SELinux
+    "selinux-policy-targeted",
+    "container-selinux",
+    # systemd-boot
+    "systemd-boot-unsigned",
+    # TPM2
+    "tpm2-tools",
+    "tpm2-tss",
+]
+
+[transforms.dracut]
+extra_modules = ["virtiofs", "tpm2-tss"]
+
+[transforms.systemd]
+enable_units = ["systemd-networkd", "systemd-resolved", "sshd"]
+disable_timers = ["dnf-makecache.timer"]
