@@ -36,10 +36,11 @@ impl Transform for ChrootOps {
             let ft = entry.file_type().context("file type in usr/lib/modules")?;
             if ft.is_dir() {
                 let kver = entry.file_name().to_string_lossy().to_string();
+                let in_modules = dir.exists(format!("usr/lib/modules/{kver}/initramfs.img"));
                 let in_boot = dir.exists(format!("boot/initramfs-{kver}.img"));
                 let in_ostree_boot =
                     dir.exists(format!("usr/lib/ostree-boot/initramfs-{kver}.img"));
-                if !in_boot && !in_ostree_boot {
+                if !in_modules && !in_boot && !in_ostree_boot {
                     return Ok(false);
                 }
             }

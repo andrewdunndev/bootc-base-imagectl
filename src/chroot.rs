@@ -203,13 +203,17 @@ fn depmod(rootfs: &Path, kver: &str) -> Result<()> {
 }
 
 /// Generate the initramfs using dracut.
+///
+/// Output to /usr/lib/modules/{kver}/initramfs.img which is where
+/// bootc expects it for ostree deployments.
 #[cfg(target_os = "linux")]
 fn generate_initramfs(rootfs: &Path, kver: &str) -> Result<()> {
     tracing::info!("generating initramfs for {kver}");
+    let output = format!("/usr/lib/modules/{kver}/initramfs.img");
     run_in_chroot(
         rootfs,
         "dracut",
-        &["--no-hostonly", "--kver", kver, "--force"],
+        &["--no-hostonly", "--kver", kver, "--force", &output],
     )
     .with_context(|| format!("dracut --kver {kver}"))
 }
