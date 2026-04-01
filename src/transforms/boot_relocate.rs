@@ -49,19 +49,38 @@ impl Transform for BootRelocate {
         dir.create_dir_all(OSTREE_BOOT_DIR)
             .with_context(|| format!("creating {OSTREE_BOOT_DIR}"))?;
 
+        // Use cp -a + rm instead of rename, since /boot and /usr may be
+        // on different filesystems (common in chroot-isolated CI builds).
         if dir.is_dir(BOOT_DIR) {
-            for entry in dir
-                .read_dir(BOOT_DIR)
-                .with_context(|| format!("reading {BOOT_DIR}"))?
-            {
-                let entry = entry.with_context(|| format!("reading entry in {BOOT_DIR}"))?;
-                let file_name = entry.file_name();
-                let name_str = file_name.to_string_lossy();
-                let from = format!("{BOOT_DIR}/{name_str}");
-                let to = format!("{OSTREE_BOOT_DIR}/{name_str}");
+            let boot_path = ctx.rootfs_path.join(BOOT_DIR);
+            let dest_path = ctx.rootfs_path.join(OSTREE_BOOT_DIR);
 
-                dir.rename(&from, dir, &to)
-                    .with_context(|| format!("moving {from} -> {to}"))?;
+            for entry in std::fs::read_dir(&boot_path)
+                .with_context(|| format!("reading {}", boot_path.display()))?
+            {
+                let entry =
+                    entry.with_context(|| format!("reading entry in {}", boot_path.display()))?;
+                let name = entry.file_name();
+                let name_str = name.to_string_lossy();
+                let from = entry.path();
+                let to = dest_path.join(&*name_str);
+
+                // Copy (preserving attributes) then remove original
+                let status = std::process::Command::new("cp")
+                    .args(["-a"])
+                    .arg(&from)
+                    .arg(&to)
+                    .status()
+                    .with_context(|| format!("copying {} -> {}", from.display(), to.display()))?;
+                anyhow::ensure!(status.success(), "cp -a failed for {}", name_str);
+
+                if from.is_dir() && !from.is_symlink() {
+                    std::fs::remove_dir_all(&from)
+                        .with_context(|| format!("removing {}", from.display()))?;
+                } else {
+                    std::fs::remove_file(&from)
+                        .with_context(|| format!("removing {}", from.display()))?;
+                }
                 tracing::debug!("moved boot/{name_str}");
             }
         }
