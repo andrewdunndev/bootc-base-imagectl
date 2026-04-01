@@ -38,15 +38,19 @@ pub fn run_chroot_operations(rootfs: &Path) -> Result<()> {
         );
     }
 
-    // Bind-mount /proc, /sys, /dev into rootfs
-    let mounts = [("proc", "/proc"), ("sys", "/sys"), ("dev", "/dev")];
-    for (subdir, source) in &mounts {
-        let target = rootfs.join(subdir);
-        std::fs::create_dir_all(&target)
+    // Mount /proc, /sys, /dev into rootfs for chroot operations.
+    // Use type mounts for proc/sys (works in chroot-isolated CI)
+    // and --rbind for /dev (recursive, includes /dev/pts etc).
+    let proc_target = rootfs.join("proc");
+    let sys_target = rootfs.join("sys");
+    let dev_target = rootfs.join("dev");
+    for target in [&proc_target, &sys_target, &dev_target] {
+        std::fs::create_dir_all(target)
             .with_context(|| format!("creating {}", target.display()))?;
-        bind_mount(source, &target)
-            .with_context(|| format!("bind mounting {source} -> {}", target.display()))?;
     }
+    mount_fs("proc", "proc", &proc_target)?;
+    mount_fs("sysfs", "sys", &sys_target)?;
+    rbind_mount("/dev", &dev_target)?;
 
     let result = (|| -> Result<()> {
         depmod(rootfs, &kver)?;
@@ -56,12 +60,16 @@ pub fn run_chroot_operations(rootfs: &Path) -> Result<()> {
         Ok(())
     })();
 
-    // Always unmount, even if operations failed
-    for (subdir, _) in mounts.iter().rev() {
-        let target = rootfs.join(subdir);
-        if let Err(e) = umount(&target) {
-            tracing::warn!("failed to unmount {}: {e}", target.display());
-        }
+    // Always unmount, even if operations failed. Reverse order: dev, sys, proc.
+    // Use -R for /dev since it was --rbind mounted.
+    if let Err(e) = umount_recursive(&dev_target) {
+        tracing::warn!("failed to unmount {}: {e}", dev_target.display());
+    }
+    if let Err(e) = umount(&sys_target) {
+        tracing::warn!("failed to unmount {}: {e}", sys_target.display());
+    }
+    if let Err(e) = umount(&proc_target) {
+        tracing::warn!("failed to unmount {}: {e}", proc_target.display());
     }
 
     // Restore /root symlink
@@ -126,18 +134,49 @@ fn run_in_chroot(rootfs: &Path, program: &str, args: &[&str]) -> Result<()> {
     Ok(())
 }
 
+/// Mount a filesystem by type (e.g., proc, sysfs).
 #[cfg(target_os = "linux")]
-fn bind_mount(source: &str, target: &Path) -> Result<()> {
+fn mount_fs(fstype: &str, source: &str, target: &Path) -> Result<()> {
     let status = std::process::Command::new("mount")
-        .args(["--bind", source])
+        .args(["-t", fstype, source])
         .arg(target)
         .status()
-        .with_context(|| format!("mount --bind {source} {}", target.display()))?;
+        .with_context(|| format!("mount -t {fstype} {source} {}", target.display()))?;
+    anyhow::ensure!(status.success(), "mount -t {fstype} failed with {status}");
+    tracing::debug!("mounted {fstype} on {}", target.display());
+    Ok(())
+}
+
+/// Recursive bind mount (for /dev which has submounts like /dev/pts).
+#[cfg(target_os = "linux")]
+fn rbind_mount(source: &str, target: &Path) -> Result<()> {
+    let status = std::process::Command::new("mount")
+        .args(["--rbind", source])
+        .arg(target)
+        .status()
+        .with_context(|| format!("mount --rbind {source} {}", target.display()))?;
     anyhow::ensure!(
         status.success(),
-        "mount --bind {source} failed with {status}"
+        "mount --rbind {source} failed with {status}"
     );
-    tracing::debug!("bind mounted {source} -> {}", target.display());
+    tracing::debug!("rbind mounted {source} -> {}", target.display());
+    Ok(())
+}
+
+/// Recursive unmount (for --rbind mounts).
+#[cfg(target_os = "linux")]
+fn umount_recursive(target: &Path) -> Result<()> {
+    let status = std::process::Command::new("umount")
+        .args(["-R"])
+        .arg(target)
+        .status()
+        .with_context(|| format!("umount -R {}", target.display()))?;
+    anyhow::ensure!(
+        status.success(),
+        "umount -R {} failed with {status}",
+        target.display()
+    );
+    tracing::debug!("recursively unmounted {}", target.display());
     Ok(())
 }
 
