@@ -16,6 +16,8 @@ cache:
 test:
   stage: test
   image: rust:latest
+  before_script:
+    - rustup component add rustfmt clippy
   script:
     - cargo fmt -- --check
     - cargo clippy -- -D warnings
