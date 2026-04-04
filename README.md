@@ -1,4 +1,11 @@
+![bootc-base-imagectl hero](hero.png)
+
 # bootc-base-imagectl
+
+[![pipeline status](https://gitlab.com/dunn.dev/immutable/bootc-base-imagectl/badges/main/pipeline.svg)](https://gitlab.com/dunn.dev/immutable/bootc-base-imagectl/-/pipelines)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://www.rust-lang.org)
+[![Made with GitLab](https://img.shields.io/badge/Made%20with-GitLab-fc6d26?logo=gitlab&logoColor=white)](https://gitlab.com/dunn.dev/immutable/bootc-base-imagectl)
 
 Transforms a `dnf --installroot` rootfs into a bootc-compatible layout.
 
